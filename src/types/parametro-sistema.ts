@@ -12,3 +12,11 @@ export interface ParametroSistema {
     estadoSincronizacion: string;
 }
 
+export interface CreateParametroSistemaDto {
+  nombreParametroSistema: string;
+  valorParametroSistema: string;
+  idGrupoParametro?: number;
+  idEntidadSistema: number;
+  indicadorEstado?: 'A' | 'I'; //default es A en la db
+  usuarioRegistro: string;
+}
