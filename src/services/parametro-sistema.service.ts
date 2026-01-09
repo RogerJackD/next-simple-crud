@@ -15,9 +15,7 @@ const getRucFromStorage = (): string => {
   return ruc;
 };
 
-/**
- * Genera los headers necesarios para las peticiones, incluyendo el RUC
- */
+//metodo genera header ruc para cada peticion
 const getHeaders = (): HeadersInit => {
   const ruc = getRucFromStorage();
   return {

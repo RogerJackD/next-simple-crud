@@ -33,7 +33,7 @@ export default function ParametrosSistemaPage() {
     const rucFromUrl = searchParams?.get('ruc');
     
     if (rucFromUrl) {
-      console.log('✅ RUC recibido desde URL:', rucFromUrl);
+      console.log('RUC recibido desde URL:', rucFromUrl);
       localStorage.setItem(RUC_STORAGE_KEY, rucFromUrl);
       
       // Limpiar el query param de la URL
@@ -43,12 +43,12 @@ export default function ParametrosSistemaPage() {
       const currentRuc = localStorage.getItem(RUC_STORAGE_KEY);
       
       if (!currentRuc) {
-        console.warn('⚠️ No se encontró RUC. Redirigiendo al login...');
+        console.warn('No se encontró RUC. Redirigiendo al login...');
         window.location.href = LOGIN_URL;
         return;
       }
       
-      console.log('✅ RUC encontrado en localStorage:', currentRuc);
+      console.log('RUC encontrado en localStorage:', currentRuc);
     }
   }, [searchParams, router]);
 
@@ -57,9 +57,9 @@ export default function ParametrosSistemaPage() {
       setLoading(true);
       const data = await ParametroSistemaService.getAll();
       setParametros(data);
-      console.log('✅ Parámetros cargados:', data.length);
+      console.log('Parámetros cargados:', data.length);
     } catch (error: any) {
-      console.error('❌ Error cargando parámetros:', error);
+      console.error('Error cargando parámetros:', error);
       alert(`Error: ${error.message || 'No se pudieron cargar los parámetros'}`);
       
       // Si el error es por RUC inválido, redirigir al login
