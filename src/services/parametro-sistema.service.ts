@@ -59,5 +59,23 @@ export const ParametroSistemaService = {
     return response.json();
   },
 
+  create: async (data: CreateParametroSistemaDto): Promise<ParametroSistema> => {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "RUC no válido");
+      }
+      throw new Error("Error al crear parámetro");
+    }
+    
+    return response.json();
+  },
+
   
 };
