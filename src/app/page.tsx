@@ -10,11 +10,11 @@ import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
 import { DetailDialog } from "../components/parametros/detail-dialog";
-import { DeleteDialog } from "../components/parametros/delete-dialog";
 import { FormDialog } from "../components/parametros/form-dialog";
+import { DisableDialog } from "../components/parametros/edit-dialog";
 
 const RUC_STORAGE_KEY = 'current_ruc';
-const LOGIN_URL = 'http://localhost:8081/auth';
+const LOGIN_URL = 'http://localhost:8080/auth';
 
 export default function ParametrosSistemaPage() {
   const router = useRouter();
@@ -23,9 +23,9 @@ export default function ParametrosSistemaPage() {
   const [loading, setLoading] = useState(true);
   const [selectedParametro, setSelectedParametro] = useState<ParametroSistema | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [disableOpen, setDisableOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Capturar y validar RUC al cargar la página
@@ -33,7 +33,7 @@ export default function ParametrosSistemaPage() {
     const rucFromUrl = searchParams?.get('ruc');
     
     if (rucFromUrl) {
-      console.log(' RUC recibido desde URL:', rucFromUrl);
+      console.log('✅ RUC recibido desde URL:', rucFromUrl);
       localStorage.setItem(RUC_STORAGE_KEY, rucFromUrl);
       
       // Limpiar el query param de la URL
@@ -43,12 +43,12 @@ export default function ParametrosSistemaPage() {
       const currentRuc = localStorage.getItem(RUC_STORAGE_KEY);
       
       if (!currentRuc) {
-        console.warn('No se encontró RUC. Redirigiendo al login...');
+        console.warn('⚠️ No se encontró RUC. Redirigiendo al login...');
         window.location.href = LOGIN_URL;
         return;
       }
       
-      console.log('RUC encontrado en localStorage:', currentRuc);
+      console.log('✅ RUC encontrado en localStorage:', currentRuc);
     }
   }, [searchParams, router]);
 
@@ -57,9 +57,9 @@ export default function ParametrosSistemaPage() {
       setLoading(true);
       const data = await ParametroSistemaService.getAll();
       setParametros(data);
-      console.log('Parámetros cargados:', data.length);
+      console.log('✅ Parámetros cargados:', data.length);
     } catch (error: any) {
-      console.error('Error cargando parámetros:', error);
+      console.error('❌ Error cargando parámetros:', error);
       alert(`Error: ${error.message || 'No se pudieron cargar los parámetros'}`);
       
       // Si el error es por RUC inválido, redirigir al login
@@ -94,7 +94,7 @@ export default function ParametrosSistemaPage() {
 
   const handleDelete = (parametro: ParametroSistema) => {
     setSelectedParametro(parametro);
-    setDeleteOpen(true);
+    setDisableOpen(true);
   };
 
   const handleCreate = () => {
@@ -102,20 +102,23 @@ export default function ParametrosSistemaPage() {
     setFormOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDisable = async (usuarioModificacion: string) => {
     if (!selectedParametro) return;
 
     try {
-      setIsDeleting(true);
-      await ParametroSistemaService.delete(selectedParametro.idParametroSistema);
-      alert("Parámetro eliminado correctamente");
-      setDeleteOpen(false);
+      setIsDisabling(true);
+      await ParametroSistemaService.disable(
+        selectedParametro.idParametroSistema,
+        usuarioModificacion
+      );
+      alert("Parámetro deshabilitado correctamente");
+      setDisableOpen(false);
       loadParametros();
     } catch (error: any) {
-      alert(`Error: ${error.message || 'No se pudo eliminar el parámetro'}`);
+      alert(`Error: ${error.message || 'No se pudo deshabilitar el parámetro'}`);
       console.error(error);
     } finally {
-      setIsDeleting(false);
+      setIsDisabling(false);
     }
   };
 
@@ -251,12 +254,12 @@ export default function ParametrosSistemaPage() {
         onOpenChange={setDetailOpen}
       />
 
-      <DeleteDialog
+      <DisableDialog
         parametro={selectedParametro}
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        onConfirm={confirmDelete}
-        isDeleting={isDeleting}
+        open={disableOpen}
+        onOpenChange={setDisableOpen}
+        onConfirm={confirmDisable}
+        isDisabling={isDisabling}
       />
 
       <FormDialog
