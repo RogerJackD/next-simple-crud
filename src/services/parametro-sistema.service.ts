@@ -43,5 +43,21 @@ export const ParametroSistemaService = {
     return response.json();
   },
 
+  getById: async (id: number): Promise<ParametroSistema> => {
+    const response = await fetch(`${API_URL}/${id}`, {
+      headers: getHeaders(),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "RUC no válido");
+      }
+      throw new Error("Error al obtener parámetro");
+    }
+    
+    return response.json();
+  },
+
   
 };
