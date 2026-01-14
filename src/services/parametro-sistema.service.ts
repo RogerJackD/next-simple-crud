@@ -15,14 +15,12 @@ const getRucFromStorage = (): string => {
   return ruc;
 };
 
-/**
- * Genera los headers necesarios para las peticiones, incluyendo el RUC
- */
+//metodo genera header ruc para cada peticion
 const getHeaders = (): HeadersInit => {
   const ruc = getRucFromStorage();
   return {
     "Content-Type": "application/json",
-    "X-Tenant-Id": ruc,
+    "ruc": ruc,
   };
 };
 
@@ -95,10 +93,11 @@ export const ParametroSistemaService = {
     return response.json();
   },
 
-  delete: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: "DELETE",
+  disable: async (id: number, usuarioModificacion: string): Promise<ParametroSistema> => {
+    const response = await fetch(`${API_URL}/${id}/disable`, {
+      method: "PATCH",
       headers: getHeaders(),
+      body: JSON.stringify({ usuarioModificacion }),
     });
     
     if (!response.ok) {
@@ -106,7 +105,10 @@ export const ParametroSistemaService = {
         const error = await response.json();
         throw new Error(error.message || "RUC no válido");
       }
-      throw new Error("Error al eliminar parámetro");
+      throw new Error("Error al deshabilitar parámetro");
     }
+    
+    return response.json();
   },
+
 };

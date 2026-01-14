@@ -1,31 +1,23 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { ParametroSistema, CreateParametroSistemaDto, UpdateParametroSistemaDto } from "../../types/parametro-sistema";
+import { ParametroSistema } from "../../types/parametro-sistema";
 
 interface FormDialogProps {
   parametro: ParametroSistema | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CreateParametroSistemaDto | UpdateParametroSistemaDto) => void;
-  isSubmitting?: boolean;
+  onSubmit: (data: Partial<ParametroSistema>) => void;
+  isSubmitting: boolean;
 }
 
 export function FormDialog({
@@ -33,166 +25,238 @@ export function FormDialog({
   open,
   onOpenChange,
   onSubmit,
-  isSubmitting = false,
+  isSubmitting,
 }: FormDialogProps) {
   const [formData, setFormData] = useState({
     nombreParametroSistema: "",
     valorParametroSistema: "",
     idGrupoParametro: "",
     idEntidadSistema: "",
-    indicadorEstado: "A" as "A" | "I",
-    usuario: "admin",
+    usuarioRegistro: "",
+    usuarioModificacion: "",
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (parametro) {
+      // Modo edición
       setFormData({
         nombreParametroSistema: parametro.nombreParametroSistema,
         valorParametroSistema: parametro.valorParametroSistema,
         idGrupoParametro: parametro.idGrupoParametro?.toString() || "",
         idEntidadSistema: parametro.idEntidadSistema.toString(),
-        indicadorEstado: parametro.indicadorEstado as "A" | "I",
-        usuario: "admin",
+        usuarioRegistro: parametro.usuarioRegistro,
+        usuarioModificacion: "", // Usuario que realiza la modificación
       });
     } else {
+      // Modo creación
       setFormData({
         nombreParametroSistema: "",
         valorParametroSistema: "",
         idGrupoParametro: "",
         idEntidadSistema: "",
-        indicadorEstado: "A",
-        usuario: "admin",
+        usuarioRegistro: "",
+        usuarioModificacion: "",
       });
     }
+    setErrors({});
   }, [parametro, open]);
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.nombreParametroSistema.trim()) {
+      newErrors.nombreParametroSistema = "El nombre es requerido";
+    }
+
+    if (!formData.valorParametroSistema.trim()) {
+      newErrors.valorParametroSistema = "El valor es requerido";
+    }
+
+    if (!formData.idEntidadSistema) {
+      newErrors.idEntidadSistema = "La entidad del sistema es requerida";
+    }
+
+    if (parametro) {
+      // En modo edición, validar usuarioModificacion
+      if (!formData.usuarioModificacion.trim()) {
+        newErrors.usuarioModificacion = "El usuario de modificación es requerido";
+      }
+    } else {
+      // En modo creación, validar usuarioRegistro
+      if (!formData.usuarioRegistro.trim()) {
+        newErrors.usuarioRegistro = "El usuario de registro es requerido";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!validate()) {
+      return;
+    }
+
+    const submitData: Partial<ParametroSistema> = {
+      nombreParametroSistema: formData.nombreParametroSistema,
+      valorParametroSistema: formData.valorParametroSistema,
+      ...(formData.idGrupoParametro && {
+        idGrupoParametro: parseInt(formData.idGrupoParametro),
+      }),
+    };
+
     if (parametro) {
-      // UPDATE - Solo enviar campos modificables
-      const updateData: UpdateParametroSistemaDto = {
-        usuarioModificacion: formData.usuario,
-      };
-
-      if (formData.nombreParametroSistema !== parametro.nombreParametroSistema) {
-        updateData.nombreParametroSistema = formData.nombreParametroSistema;
-      }
-      if (formData.valorParametroSistema !== parametro.valorParametroSistema) {
-        updateData.valorParametroSistema = formData.valorParametroSistema;
-      }
-      if (formData.indicadorEstado !== parametro.indicadorEstado) {
-        updateData.indicadorEstado = formData.indicadorEstado;
-      }
-      
-      // Manejar idGrupoParametro (puede ser null)
-      const newGrupoId = formData.idGrupoParametro ? parseInt(formData.idGrupoParametro) : null;
-      if (newGrupoId !== (parametro.idGrupoParametro || null)) {
-        updateData.idGrupoParametro = newGrupoId;
-      }
-
-      onSubmit(updateData);
+      // Modo edición - NO enviar idEntidadSistema
+      submitData.usuarioModificacion = formData.usuarioModificacion;
     } else {
-      // CREATE
-      const createData: CreateParametroSistemaDto = {
-        nombreParametroSistema: formData.nombreParametroSistema,
-        valorParametroSistema: formData.valorParametroSistema,
-        idEntidadSistema: parseInt(formData.idEntidadSistema),
-        indicadorEstado: formData.indicadorEstado,
-        usuarioRegistro: formData.usuario,
-      };
+      // Modo creación - SÍ enviar idEntidadSistema
+      submitData.idEntidadSistema = parseInt(formData.idEntidadSistema);
+      submitData.usuarioRegistro = formData.usuarioRegistro;
+    }
 
-      if (formData.idGrupoParametro) {
-        createData.idGrupoParametro = parseInt(formData.idGrupoParametro);
-      }
+    onSubmit(submitData);
+  };
 
-      onSubmit(createData);
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Limpiar error del campo cuando el usuario empiece a escribir
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {parametro ? "Editar Parámetro" : "Crear Parámetro"}
+            {parametro ? "Editar Parámetro" : "Nuevo Parámetro"}
           </DialogTitle>
+          <DialogDescription>
+            {parametro
+              ? "Modifica los campos del parámetro del sistema"
+              : "Completa los campos para crear un nuevo parámetro"}
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="nombre">Nombre del Parámetro *</Label>
-              <Input
-                id="nombre"
-                value={formData.nombreParametroSistema}
-                onChange={(e) =>
-                  setFormData({ ...formData, nombreParametroSistema: e.target.value })
-                }
-                required
-              />
-            </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="valor">Valor del Parámetro *</Label>
-              <Input
-                id="valor"
-                value={formData.valorParametroSistema}
-                onChange={(e) =>
-                  setFormData({ ...formData, valorParametroSistema: e.target.value })
-                }
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="nombreParametroSistema">
+              Nombre del Parámetro *
+            </Label>
+            <Input
+              id="nombreParametroSistema"
+              value={formData.nombreParametroSistema}
+              onChange={(e) =>
+                handleChange("nombreParametroSistema", e.target.value)
+              }
+              disabled={isSubmitting}
+              placeholder="TIMEOUT_SESSION"
+            />
+            {errors.nombreParametroSistema && (
+              <p className="text-sm text-destructive">
+                {errors.nombreParametroSistema}
+              </p>
+            )}
+          </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="idGrupoParametro">ID Grupo Parámetro</Label>
-              <Input
-                id="idGrupoParametro"
-                type="number"
-                value={formData.idGrupoParametro}
-                onChange={(e) =>
-                  setFormData({ ...formData, idGrupoParametro: e.target.value })
-                }
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="valorParametroSistema">Valor *</Label>
+            <Input
+              id="valorParametroSistema"
+              value={formData.valorParametroSistema}
+              onChange={(e) =>
+                handleChange("valorParametroSistema", e.target.value)
+              }
+              disabled={isSubmitting}
+              placeholder="3600"
+            />
+            {errors.valorParametroSistema && (
+              <p className="text-sm text-destructive">
+                {errors.valorParametroSistema}
+              </p>
+            )}
+          </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="idEntidadSistema">ID Entidad Sistema *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="idEntidadSistema">ID Entidad Sistema *</Label>
+            <Input
+              id="idEntidadSistema"
+              type="number"
+              value={formData.idEntidadSistema}
+              onChange={(e) => handleChange("idEntidadSistema", e.target.value)}
+              disabled={isSubmitting}
+              placeholder="1"
+            />
+            {errors.idEntidadSistema && (
+              <p className="text-sm text-destructive">
+                {errors.idEntidadSistema}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="idGrupoParametro">
+              ID Grupo Parámetro (opcional)
+            </Label>
+            <Input
+              id="idGrupoParametro"
+              type="number"
+              value={formData.idGrupoParametro}
+              onChange={(e) => handleChange("idGrupoParametro", e.target.value)}
+              disabled={isSubmitting}
+              placeholder="1"
+            />
+          </div>
+
+          {parametro ? (
+            <div className="space-y-2">
+              <Label htmlFor="usuarioModificacion">
+                Usuario de Modificación *
+              </Label>
               <Input
-                id="idEntidadSistema"
-                type="number"
-                value={formData.idEntidadSistema}
+                id="usuarioModificacion"
+                value={formData.usuarioModificacion}
                 onChange={(e) =>
-                  setFormData({ ...formData, idEntidadSistema: e.target.value })
+                  handleChange("usuarioModificacion", e.target.value)
                 }
-                required
-                disabled={!!parametro}
+                disabled={isSubmitting}
+                placeholder="Tu usuario"
               />
-              {parametro && (
-                <p className="text-xs text-muted-foreground">
-                  Este campo no se puede modificar
+              {errors.usuarioModificacion && (
+                <p className="text-sm text-destructive">
+                  {errors.usuarioModificacion}
                 </p>
               )}
             </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="estado">Estado *</Label>
-              <Select
-                value={formData.indicadorEstado}
-                onValueChange={(value: "A" | "I") =>
-                  setFormData({ ...formData, indicadorEstado: value })
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="usuarioRegistro">Usuario de Registro *</Label>
+              <Input
+                id="usuarioRegistro"
+                value={formData.usuarioRegistro}
+                onChange={(e) =>
+                  handleChange("usuarioRegistro", e.target.value)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A">Activo</SelectItem>
-                  <SelectItem value="I">Inactivo</SelectItem>
-                </SelectContent>
-              </Select>
+                disabled={isSubmitting}
+                placeholder="Tu usuario"
+              />
+              {errors.usuarioRegistro && (
+                <p className="text-sm text-destructive">
+                  {errors.usuarioRegistro}
+                </p>
+              )}
             </div>
-          </div>
+          )}
+
           <DialogFooter>
             <Button
               type="button"
@@ -203,7 +267,13 @@ export function FormDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Guardando..." : parametro ? "Actualizar" : "Crear"}
+              {isSubmitting
+                ? parametro
+                  ? "Actualizando..."
+                  : "Creando..."
+                : parametro
+                ? "Actualizar"
+                : "Crear"}
             </Button>
           </DialogFooter>
         </form>
