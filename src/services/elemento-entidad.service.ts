@@ -57,5 +57,23 @@ export const ElementoEntidadService = {
     
     return response.json();
   },
+  create: async (data: CreateElementoEntidadDto): Promise<ElementoEntidad> => {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "Datos inválidos");
+      }
+      throw new Error("Error al crear elemento de entidad");
+    }
+    
+    return response.json();
+  },
+
   
 };
