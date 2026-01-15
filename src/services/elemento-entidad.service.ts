@@ -75,5 +75,26 @@ export const ElementoEntidadService = {
     return response.json();
   },
 
+  update: async (id: number, data: UpdateElementoEntidadDto): Promise<ElementoEntidad> => {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "Datos inválidos");
+      }
+      if (response.status === 404) {
+        throw new Error("Elemento no encontrado");
+      }
+      throw new Error("Error al actualizar elemento");
+    }
+    
+    return response.json();
+  },
+
   
 };
