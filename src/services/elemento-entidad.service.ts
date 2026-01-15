@@ -96,5 +96,27 @@ export const ElementoEntidadService = {
     return response.json();
   },
 
-  
+  disable: async (id: number, usuarioModificacion: string): Promise<ElementoEntidad> => {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        indicadorEstado: "E",
+        usuarioModificacion,
+      }),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "Error al deshabilitar");
+      }
+      if (response.status === 404) {
+        throw new Error("Elemento no encontrado");
+      }
+      throw new Error("Error al deshabilitar elemento");
+    }
+    
+    return response.json();
+  },
 };
