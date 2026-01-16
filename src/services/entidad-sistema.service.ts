@@ -80,5 +80,26 @@ export const EntidadSistemaService = {
   },
 
   
-  
+  update: async (id: number, data: UpdateEntidadSistemaDto): Promise<EntidadSistema> => {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "Datos inválidos");
+      }
+      if (response.status === 404) {
+        throw new Error("Entidad no encontrada");
+      }
+      throw new Error("Error al actualizar entidad");
+    }
+    
+    return response.json();
+  },
+
+
 };
