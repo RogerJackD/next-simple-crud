@@ -61,5 +61,24 @@ export const EntidadSistemaService = {
   },
 
   
+  create: async (data: CreateEntidadSistemaDto): Promise<EntidadSistema> => {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "Datos inválidos");
+      }
+      throw new Error("Error al crear entidad");
+    }
+    
+    return response.json();
+  },
+
+  
   
 };
