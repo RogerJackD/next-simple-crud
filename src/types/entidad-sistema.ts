@@ -16,6 +16,7 @@ export interface EntidadSistema {
   numeroFilasPorPagina: number;
   estadoImportacion: string;
   nombrePlantillaImportacion: string;
+  elementos: ElementoEntidad[];
 }
 
 
@@ -36,7 +37,6 @@ export interface ElementoEntidad {
 
 export interface CreateEntidadSistemaDto {
   nombreEntidadSistema: string;
-  indicadorEstado?: 'A' | 'E';
   idModuloSistema: number;
   usuarioRegistro: string;
   numeroRegistrosPendientesIteracion?: number;
