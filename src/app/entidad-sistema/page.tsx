@@ -2,48 +2,83 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, Pencil, Trash, Plus, ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Eye,
+  Pencil,
+  Trash,
+  Plus,
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { EntidadSistema } from "../../types/entidad-sistema";
 import { EntidadSistemaService } from "../../services/entidad-sistema.service";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 import { Badge } from "../../components/ui/badge";
+import { DisableDialog } from "@/src/components/entidad-sistema/disable-dialog";
+import { DetailDialog } from "@/src/components/entidad-sistema/detail-dialog";
+import { FormDialog } from "@/src/components/entidad-sistema/form-dialog";
 
-const RUC_STORAGE_KEY = 'current_ruc';
-const LOGIN_URL = 'http://localhost:8080/auth';
+const RUC_STORAGE_KEY = "current_ruc";
+const LOGIN_URL = "http://localhost:8080/auth";
 
 export default function EntidadSistemaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [entidades, setEntidades] = useState<EntidadSistema[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedEntidad, setSelectedEntidad] = useState<EntidadSistema | null>(null);
+  const [selectedEntidad, setSelectedEntidad] = useState<EntidadSistema | null>(
+    null
+  );
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  ///
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
+  const [entidadDetalle, setEntidadDetalle] = useState<EntidadSistema | null>(
+    null
+  );
 
   // Capturar y validar RUC al cargar la página
   useEffect(() => {
-    const rucFromUrl = searchParams?.get('ruc');
-    
+    const rucFromUrl = searchParams?.get("ruc");
+
     if (rucFromUrl) {
-      console.log('✅ RUC recibido desde URL:', rucFromUrl);
+      console.log("✅ RUC recibido desde URL:", rucFromUrl);
       localStorage.setItem(RUC_STORAGE_KEY, rucFromUrl);
-      
+
       // Limpiar correctamente la URL sin recargar
       const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
+      window.history.replaceState({}, "", newUrl);
       return;
     }
-    
+
     const currentRuc = localStorage.getItem(RUC_STORAGE_KEY);
-    
+
     if (!currentRuc) {
-      console.warn('⚠️ No se encontró RUC. Redirigiendo al login...');
+      console.warn("⚠️ No se encontró RUC. Redirigiendo al login...");
       window.location.href = LOGIN_URL;
       return;
     }
-    
-    console.log('✅ RUC encontrado en localStorage:', currentRuc);
+
+    console.log("✅ RUC encontrado en localStorage:", currentRuc);
   }, [searchParams]);
 
   const loadEntidades = async () => {
@@ -51,12 +86,12 @@ export default function EntidadSistemaPage() {
       setLoading(true);
       const data = await EntidadSistemaService.getAllWithElements();
       setEntidades(data);
-      console.log('✅ Entidades cargadas:', data.length);
+      console.log("✅ Entidades cargadas:", data.length);
     } catch (error: any) {
-      console.error('❌ Error cargando entidades:', error);
-      alert(`Error: ${error.message || 'No se pudieron cargar las entidades'}`);
-      
-      if (error.message?.includes('RUC') || error.message?.includes('válido')) {
+      console.error("❌ Error cargando entidades:", error);
+      alert(`Error: ${error.message || "No se pudieron cargar las entidades"}`);
+
+      if (error.message?.includes("RUC") || error.message?.includes("válido")) {
         localStorage.removeItem(RUC_STORAGE_KEY);
         setTimeout(() => {
           window.location.href = LOGIN_URL;
@@ -75,7 +110,7 @@ export default function EntidadSistemaPage() {
   }, []);
 
   const toggleRow = (id: number) => {
-    setExpandedRows(prev => {
+    setExpandedRows((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
         newSet.delete(id);
@@ -86,24 +121,33 @@ export default function EntidadSistemaPage() {
     });
   };
 
-  const handleView = (entidad: EntidadSistema) => {
-    setSelectedEntidad(entidad);
-    console.log('Ver entidad:', entidad);
+  const handleView = async (entidad: EntidadSistema) => {
+    try {
+      setDetailOpen(true);
+      const detalle = await EntidadSistemaService.getById(
+        entidad.idEntidadSistema
+      );
+      setEntidadDetalle(detalle);
+    } catch (error: any) {
+      console.error("Error:", error);
+      alert(`Error: ${error.message}`);
+      setDetailOpen(false);
+    }
   };
 
   const handleEdit = (entidad: EntidadSistema) => {
     setSelectedEntidad(entidad);
-    console.log('Editar entidad:', entidad);
+    setFormOpen(true);
   };
 
   const handleDelete = (entidad: EntidadSistema) => {
     setSelectedEntidad(entidad);
-    console.log('Deshabilitar entidad:', entidad);
+    setDisableOpen(true);
   };
 
   const handleCreate = () => {
     setSelectedEntidad(null);
-    console.log('Crear nueva entidad');
+    setFormOpen(true);
   };
 
   const handleLogout = () => {
@@ -113,6 +157,46 @@ export default function EntidadSistemaPage() {
 
   const handleGoBack = () => {
     router.back();
+  };
+
+  const handleSubmit = async (data: any) => {
+    try {
+      setIsSubmitting(true);
+      if (selectedEntidad) {
+        await EntidadSistemaService.update(
+          selectedEntidad.idEntidadSistema,
+          data
+        );
+        alert("Entidad actualizada correctamente");
+      } else {
+        await EntidadSistemaService.create(data);
+        alert("Entidad creada correctamente");
+      }
+      setFormOpen(false);
+      loadEntidades();
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const confirmDisable = async (usuarioModificacion: string) => {
+    if (!selectedEntidad) return;
+    try {
+      setIsDisabling(true);
+      await EntidadSistemaService.disable(
+        selectedEntidad.idEntidadSistema,
+        usuarioModificacion
+      );
+      alert("Entidad deshabilitada correctamente");
+      setDisableOpen(false);
+      loadEntidades();
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
+    } finally {
+      setIsDisabling(false);
+    }
   };
 
   if (loading) {
@@ -203,9 +287,15 @@ export default function EntidadSistemaPage() {
                       <TableCell>{entidad.idModuloSistema}</TableCell>
                       <TableCell>
                         <Badge
-                          variant={entidad.indicadorEstado === "A" ? "default" : "secondary"}
+                          variant={
+                            entidad.indicadorEstado === "A"
+                              ? "default"
+                              : "secondary"
+                          }
                         >
-                          {entidad.indicadorEstado === "A" ? "Activo" : "Inactivo"}
+                          {entidad.indicadorEstado === "A"
+                            ? "Activo"
+                            : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -215,8 +305,13 @@ export default function EntidadSistemaPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col text-xs">
-                          <span>Pendientes: {entidad.numeroRegistrosPendientesSincronizacion}</span>
-                          <span className="text-muted-foreground">Modo: {entidad.modoSincronizacion}</span>
+                          <span>
+                            Pendientes:{" "}
+                            {entidad.numeroRegistrosPendientesSincronizacion}
+                          </span>
+                          <span className="text-muted-foreground">
+                            Modo: {entidad.modoSincronizacion}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>{entidad.usuarioRegistro}</TableCell>
@@ -246,14 +341,17 @@ export default function EntidadSistemaPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                    
+
                     {/* Fila expandible con elementos */}
                     {expandedRows.has(entidad.idEntidadSistema) && (
                       <TableRow>
                         <TableCell colSpan={9} className="bg-muted/50">
                           <div className="p-4">
-                            <h4 className="font-semibold mb-3">Elementos ({entidad.elementos?.length || 0})</h4>
-                            {entidad.elementos && entidad.elementos.length > 0 ? (
+                            <h4 className="font-semibold mb-3">
+                              Elementos ({entidad.elementos?.length || 0})
+                            </h4>
+                            {entidad.elementos &&
+                            entidad.elementos.length > 0 ? (
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {entidad.elementos.map((elemento) => (
                                   <div
@@ -265,18 +363,38 @@ export default function EntidadSistemaPage() {
                                         {elemento.nombreElemento}
                                       </span>
                                       <Badge
-                                        variant={elemento.indicadorEstado === "A" ? "default" : "secondary"}
+                                        variant={
+                                          elemento.indicadorEstado === "A"
+                                            ? "default"
+                                            : "secondary"
+                                        }
                                         className="text-xs"
                                       >
                                         {elemento.indicadorEstado}
                                       </Badge>
                                     </div>
                                     <div className="flex gap-2 text-xs">
-                                      <Badge variant={elemento.visible === "1" ? "default" : "secondary"}>
-                                        {elemento.visible === "1" ? "Visible" : "Oculto"}
+                                      <Badge
+                                        variant={
+                                          elemento.visible === "1"
+                                            ? "default"
+                                            : "secondary"
+                                        }
+                                      >
+                                        {elemento.visible === "1"
+                                          ? "Visible"
+                                          : "Oculto"}
                                       </Badge>
-                                      <Badge variant={elemento.editable === "1" ? "default" : "secondary"}>
-                                        {elemento.editable === "1" ? "Editable" : "Solo lectura"}
+                                      <Badge
+                                        variant={
+                                          elemento.editable === "1"
+                                            ? "default"
+                                            : "secondary"
+                                        }
+                                      >
+                                        {elemento.editable === "1"
+                                          ? "Editable"
+                                          : "Solo lectura"}
                                       </Badge>
                                     </div>
                                   </div>
@@ -298,6 +416,28 @@ export default function EntidadSistemaPage() {
           )}
         </CardContent>
       </Card>
+
+      <FormDialog
+        entidad={selectedEntidad}
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+      />
+
+      <DetailDialog
+        entidad={entidadDetalle}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
+
+      <DisableDialog
+        entidad={selectedEntidad}
+        open={disableOpen}
+        onOpenChange={setDisableOpen}
+        onConfirm={confirmDisable}
+        isDisabling={isDisabling}
+      />
     </div>
   );
 }
