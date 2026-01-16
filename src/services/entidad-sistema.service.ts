@@ -1,11 +1,10 @@
 // services/entidad-sistema.service.ts
 
-import { EntidadSistema } from "../types/entidad-sistema";
+import { EntidadSistema, CreateEntidadSistemaDto, UpdateEntidadSistemaDto } from "../types/entidad-sistema";
 
 const API_URL = "http://localhost:3001/api/entidad-sistema";
 const RUC_STORAGE_KEY = "current_ruc";
 
- //Obtiene el RUC desde localStorage
 
 const getRucFromStorage = (): string => {
   const ruc = localStorage.getItem(RUC_STORAGE_KEY);
@@ -15,7 +14,6 @@ const getRucFromStorage = (): string => {
   return ruc;
 };
 
- //Genera los headers necesarios para las peticiones, incluyendo el RUC
 const getHeaders = (): HeadersInit => {
   const ruc = getRucFromStorage();
   return {
@@ -25,9 +23,7 @@ const getHeaders = (): HeadersInit => {
 };
 
 export const EntidadSistemaService = {
-  /**
-   * Obtiene todas las entidades del sistema con sus elementos
-   */
+  
   getAllWithElements: async (): Promise<EntidadSistema[]> => {
     const response = await fetch(`${API_URL}?elements=true`, {
       headers: getHeaders(),
@@ -43,4 +39,27 @@ export const EntidadSistemaService = {
     
     return response.json();
   },
+
+  
+  getById: async (id: number): Promise<EntidadSistema> => {
+    const response = await fetch(`${API_URL}/${id}`, {
+      headers: getHeaders(),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json();
+        throw new Error(error.message || "RUC no válido");
+      }
+      if (response.status === 404) {
+        throw new Error("Entidad no encontrada");
+      }
+      throw new Error("Error al obtener entidad");
+    }
+    
+    return response.json();
+  },
+
+  
+  
 };
