@@ -70,7 +70,42 @@ class GrupoParametroService {
     }
   }
 
+  async update(id: number, data: { nombreGrupoParametro: string; usuarioModificacion: string }): Promise<GrupoParametro> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/grupo-parametro/${id}`, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: JSON.stringify(data),
+      });
 
+      if (!response.ok) {
+        throw new Error(`Error al actualizar grupo de parámetro: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error en update:', error);
+      throw error;
+    }
+  }
+
+  async toggleEstado(id: number, data: { indicadorEstado: string; usuarioModificacion: string }): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/grupo-parametro/${id}/toggle-estado`, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al cambiar estado: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error en toggleEstado:', error);
+      throw error;
+    }
+  }
 }
 
 export const grupoParametroService = new GrupoParametroService();
