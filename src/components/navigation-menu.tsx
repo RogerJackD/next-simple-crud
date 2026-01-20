@@ -45,6 +45,12 @@ export function NavigationMenu() {
       description: "Administra entidades y sus elementos",
       icon: <Database className="h-8 w-8" />,
       href: "/entidad-sistema",
+    },
+    {
+      title: "Grupo parametro",
+      description: "Administra entidades y sus elementos",
+      icon: <Database className="h-8 w-8" />,
+      href: "/grupo-parametro",
     }
   ];
 
